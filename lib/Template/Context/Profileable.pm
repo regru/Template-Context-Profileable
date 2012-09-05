@@ -43,21 +43,21 @@ sub process {
 
     my $param_ref = $_[1];
     if ($param_ref && ref $param_ref eq 'HASH' && $param_ref->{__do_cache}) {
-	delete $param_ref->{__do_cache};
-	$cache_key =  $template . '__' . join '_', map { ($_, $param_ref->{$_}) } sort keys %$param_ref;
+        delete $param_ref->{__do_cache};
+        $cache_key =  $template . '__' . join '_', map { ($_, $param_ref->{$_}) } sort keys %$param_ref;
     }
     # print STDERR "CACHED KEYS:\n", join '\n', keys %processed_templates_cache, "\n";
     my $cached_data;
     if ($cache_key && ($cached_data = SRS::Cache::Shm::get($cache_key))) {
-	print STDERR "$template: CACHED ($cache_key)\n";
-	@result = @{ $cached_data };
+        print STDERR "$template: CACHED ($cache_key)\n";
+        @result = @{ $cached_data };
     }
     else {
-	print STDERR "$template: NON_CACHED ($cache_key)\n";
-	@result = wantarray ?
-	    $self->SUPER::process(@_) :
-	    scalar $self->SUPER::process(@_);
-	$processed_templates_cache{$cache_key} = \@result if $cache_key;
+        print STDERR "$template: NON_CACHED ($cache_key)\n";
+        @result = wantarray ?
+            $self->SUPER::process(@_) :
+            scalar $self->SUPER::process(@_);
+        $processed_templates_cache{$cache_key} = \@result if $cache_key;
     }
 
     # / subtemplates caching prepare
@@ -67,23 +67,23 @@ sub process {
     for (0..$#delta_times) {
         $totals{$template}[$_] += $delta_times[$_];
         for my $parent (@stack) {
-	    $parent->[$_] += $delta_times[$_] if @stack; # parent adjust
+            $parent->[$_] += $delta_times[$_] if @stack; # parent adjust
         }
     }
     $totals{$template}[5] ++; # count of calls
     
     unless (@stack) {
-	## top level again, time to display results
-	print STDERR "-- $template at ". localtime, ":\n";
-	printf STDERR "%3s %3s %6s %6s %6s %6s %s\n",
-	    qw(cnt clk user sys cuser csys template);
-	for my $template (sort keys %totals) {
-	    my @values = @{$totals{$template}};
-	    printf STDERR "%3d %3d %6.2f %6.2f %6.2f %6.2f %s\n",
-		$values[5], @values[0..4], $template;
-	}
+        ## top level again, time to display results
+        print STDERR "-- $template at ". localtime, ":\n";
+        printf STDERR "%3s %3s %6s %6s %6s %6s %s\n",
+            qw(cnt clk user sys cuser csys template);
+        for my $template (sort keys %totals) {
+            my @values = @{$totals{$template}};
+            printf STDERR "%3d %3d %6.2f %6.2f %6.2f %6.2f %s\n",
+                $values[5], @values[0..4], $template;
+        }
         print STDERR "-- end\n";
-	%totals = (); # clear out results
+        %totals = (); # clear out results
     }
 
     # return value from process:
