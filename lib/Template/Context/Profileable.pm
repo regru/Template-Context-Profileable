@@ -5,7 +5,8 @@ use strict;
 
 =head1 NAME
 
-Template::Context::Profileable - The great new Template::Context::Profileable!
+Template::Context::Profileable - make Template::Context profileable:
+measure subtemplates processing time.
 
 =head1 VERSION
 
@@ -16,10 +17,7 @@ Version 0.01
 use base qw(Template::Context);
 use Data::Dumper;
 
-use lib '/www/srs/lib';
-use SRS::Cache;
-
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 my @stack;
 my %totals;
@@ -27,8 +25,6 @@ my %totals;
 sub process {
     my $self = shift;
 
-    ++$call_counter;
-    
     my $template = $_[0];
     if (UNIVERSAL::isa($template, "Template::Document")) {
         $template = $template->name || $template;
@@ -36,31 +32,9 @@ sub process {
 
     push @stack, [time, times];
 
-    # subtemplates caching prepare
-
-    my $cache_key = '';
-    my @result;
-
-    my $param_ref = $_[1];
-    if ($param_ref && ref $param_ref eq 'HASH' && $param_ref->{__do_cache}) {
-        delete $param_ref->{__do_cache};
-        $cache_key =  $template . '__' . join '_', map { ($_, $param_ref->{$_}) } sort keys %$param_ref;
-    }
-    # print STDERR "CACHED KEYS:\n", join '\n', keys %processed_templates_cache, "\n";
-    my $cached_data;
-    if ($cache_key && ($cached_data = SRS::Cache::Shm::get($cache_key))) {
-        print STDERR "$template: CACHED ($cache_key)\n";
-        @result = @{ $cached_data };
-    }
-    else {
-        print STDERR "$template: NON_CACHED ($cache_key)\n";
-        @result = wantarray ?
-            $self->SUPER::process(@_) :
-            scalar $self->SUPER::process(@_);
-        $processed_templates_cache{$cache_key} = \@result if $cache_key;
-    }
-
-    # / subtemplates caching prepare
+    my @result = wantarray ?
+        $self->SUPER::process(@_) :
+        scalar $self->SUPER::process(@_);
 
     my @delta_times = @{pop @stack};
     @delta_times = map { $_ - shift @delta_times } time, times;
